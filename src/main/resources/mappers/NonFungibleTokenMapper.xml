@@ -1,0 +1,451 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="org.cell.froopyland_interface.dao.NonFungibleTokenDao">
+    <insert id="addUserJoinLog">
+        INSERT INTO user_join_log(game_id, user_address, amount, transaction_hash, is_del, create_time)
+        VALUES (#{gameId,jdbcType=BIGINT},
+                #{userAddress,jdbcType=VARCHAR},
+                #{amount,jdbcType=DECIMAL},
+                #{transactionHash,jdbcType=VARCHAR},
+                '0',
+                sysdate())
+    </insert>
+    <select id="getUserNonFungibleTokenCount" resultType="int">
+        SELECT COUNT(*)
+        FROM nft_base_info b
+        LEFT JOIN nft_description_info d on b.NFT_address = d.NFT_address
+        WHERE user_address = #{userAddress,jdbcType=VARCHAR}
+        AND b.is_del = 0
+        <if test="nftAddresses != null and nftAddresses.length > 0">
+            <foreach collection="nftAddresses" item="ntfAddress" open="AND b.NFT_address IN (" separator="," close=")">
+                #{ntfAddress,jdbcType=VARCHAR}
+            </foreach>
+        </if>
+        <if test="chainIds != null and chainIds.length > 0">
+            <foreach collection="chainIds" item="chainId" open="AND d.chain_id IN (" separator="," close=")">
+                #{chainId,jdbcType=VARCHAR}
+            </foreach>
+        </if>
+        <if test="nftName != null and nftName != ''">
+            AND d.name LIKE CONCAT('%', #{nftName,jdbcType=VARCHAR}, '%')
+        </if>
+        <if test="queryAddress != null and queryAddress != ''">
+            AND b.NFT_address = #{queryAddress,jdbcType=VARCHAR}
+        </if>
+        <if test="queryToken != null and queryToken != ''">
+            AND b.token_id = #{queryToken,jdbcType=VARCHAR}
+        </if>
+        <if test="queryNameOrDescription != null and queryNameOrDescription != ''">
+            AND ((d.name LIKE CONCAT('%', #{queryNameOrDescription,jdbcType=VARCHAR}, '%')) or
+            (d.description LIKE CONCAT('%', #{queryNameOrDescription,jdbcType=VARCHAR}, '%')))
+        </if>
+    </select>
+
+    <select id="getUserNonFungibleTokenList"
+            resultType="org.cell.froopyland_interface.entity.nonFungibleToken.NonFungibleTokenPojo">
+        SELECT NFT_code as nftCode,
+        b.NFT_address as nftAddress,
+        b.image_url as imageUrl,
+        token_id as tokenId,
+        animation_url as animationUrl,
+        perma_link as permalink,
+        token_metadata as tokenMetadataUrl,
+        from_platform as fromPlatform,
+        d.name,
+        d.symbol,
+        d.network_name as chainName,
+        d.chain_id as chainId,
+        bio
+        FROM nft_base_info b
+        left join nft_description_info d on b.NFT_address = d.NFT_address
+        WHERE b.user_address = #{userAddress,jdbcType=VARCHAR}
+        AND b.is_del = 0
+        <if test="nftAddresses != null and nftAddresses.length > 0">
+            <foreach collection="nftAddresses" item="ntfAddress" open="AND b.NFT_address IN (" separator="," close=")">
+                #{ntfAddress,jdbcType=VARCHAR}
+            </foreach>
+        </if>
+        <if test="chainIds != null and chainIds.length > 0">
+            <foreach collection="chainIds" item="chainId" open="AND d.chain_id IN (" separator="," close=")">
+                #{chainId,jdbcType=VARCHAR}
+            </foreach>
+        </if>
+        <if test="nftName != null and nftName != ''">
+            AND d.name LIKE CONCAT('%', #{nftName,jdbcType=VARCHAR}, '%')
+        </if>
+        <if test="queryAddress != null and queryAddress != ''">
+            AND b.NFT_address = #{queryAddress,jdbcType=VARCHAR}
+        </if>
+        <if test="queryToken != null and queryToken != ''">
+            AND b.token_id = #{queryToken,jdbcType=VARCHAR}
+        </if>
+        <if test="queryNameOrDescription != null and queryNameOrDescription != ''">
+            AND ((d.name LIKE CONCAT('%', #{queryNameOrDescription,jdbcType=VARCHAR}, '%')) or
+            (d.description LIKE CONCAT('%', #{queryNameOrDescription,jdbcType=VARCHAR}, '%')))
+        </if>
+        ORDER BY b.create_time DESC
+        `LIMIT` #{startIndex,jdbcType=INTEGER}, #{pageSize,jdbcType=INTEGER}
+    </select>
+
+    <select id="getLatestNonFungibleTokenList"
+            resultType="org.cell.froopyland_interface.entity.nonFungibleToken.NonFungibleTokenPojo">
+        SELECT NFT_code as nftCode,
+        b.NFT_address as nftAddress,
+        b.image_url as imageUrl,
+        token_id as tokenId,
+        animation_url as animationUrl,
+        perma_link as permalink,
+        token_metadata as tokenMetadataUrl,
+        from_platform as fromPlatform,
+        d.name,
+        d.symbol,
+        d.network_name as chainName,
+        d.chain_id as chainId,
+        bio
+        FROM nft_base_info b
+        left join nft_description_info d on b.NFT_address = d.NFT_address
+        <foreach collection="nftCodeList" item="nftCode" open="WHERE NFT_code IN (" separator=","
+                 close=")">
+            #{nftCode,jdbcType=VARCHAR}
+        </foreach>
+        AND b.is_del = 0
+    </select>
+
+    <select id="getNonFungibleTokenCodeInfo"
+            resultType="org.cell.froopyland_interface.entity.nonFungibleToken.NonFungibleTokenCodePojo">
+        SELECT NFT_code as nonFungibleTokenCode, NFT_address as nonFungibleTokenAddress, NFT_id as nonFungibleTokenId
+        FROM nft_code_info
+        WHERE chain_id = #{chainId,jdbcType=VARCHAR}
+        AND is_del = 0
+        <if test="nftCode != null and nftCode != ''">
+            AND NFT_code = #{nftCode,jdbcType=VARCHAR}
+        </if>
+        <if test="nftAddress != null and nftAddress != ''">
+            AND NFT_address = #{nftAddress,jdbcType=VARCHAR}
+        </if>
+    </select>
+
+    <select id="getUserNonFungibleTokenInfo"
+            resultType="org.cell.froopyland_interface.entity.nonFungibleToken.NonFungibleTokenPojo">
+        SELECT NFT_code as nonFungibleTokenCode
+        FROM nft_base_info
+        WHERE user_address = #{userAddress,jdbcType=VARCHAR}
+          AND NFT_code = (SELECT NFT_code
+                          FROM nft_code_info
+                          WHERE chain_id = #{chainId,jdbcType=VARCHAR}
+                            AND NFT_address = #{nftAddress,jdbcType=VARCHAR}
+                            AND NFT_id = #{nftTokenId,jdbcType=VARCHAR}
+                            AND is_del = 0)
+    </select>
+
+    <update id="updateUserNonFungibleTokenInfo">
+        UPDATE nft_base_info
+        SET user_address = #{userAddress,jdbcType=VARCHAR},
+            update_time  = NOW()
+        where NFT_code = #{nftCode,jdbcType=VARCHAR}
+    </update>
+    <update id="updateGameStatus">
+        UPDATE nft_game_info
+        SET status = #{status,jdbcType=INTEGER}
+        WHERE game_id = #{gameId,jdbcType=BIGINT}
+    </update>
+
+    <select id="getNonFungibleTokenDescription"
+            resultType="org.cell.froopyland_interface.entity.response.DesNonFungibleTokenVo">
+        SELECT nft_address as nftAddress,
+        name,
+        symbol,
+        network_name as chainName,
+        chain_id as chainId,
+        schema_name as schemaName,
+        description,
+        image_url as imageUrl,
+        NFT_create_time as createdDate
+        FROM nft_description_info
+        WHERE is_del = 0
+        <if test="nftAddress != null and nftAddress != ''">
+            AND nft_address = #{nftAddress,jdbcType=VARCHAR}
+        </if>
+    </select>
+
+    <select id="getAllNonFungibleTokenDescription"
+            resultType="org.cell.froopyland_interface.entity.response.DesNonFungibleTokenVo">
+        SELECT network_name    as networkName,
+               chain_id        as chainId,
+               nft_address     as nftAddress,
+               name,
+               symbol,
+               schema_name     as schemaName,
+               description,
+               NFT_create_time as createdDate
+        FROM nft_description_info
+        WHERE is_del = 0
+    </select>
+
+    <select id="getNonFungibleTokenItems"
+            resultType="org.cell.froopyland_interface.entity.response.DesNonFungibleTokenVo">
+        SELECT network_name    as networkName,
+               chain_id        as chainId,
+               nft_address     as nftAddress,
+               name,
+               symbol,
+               schema_name     as schemaName,
+               description,
+               NFT_create_time as createdDate
+        FROM nft_description_info
+        WHERE network_name = #{chainName,jdbcType=VARCHAR}
+          AND chain_id = #{chainId,jdbcType=VARCHAR}
+          AND is_del = 0
+    </select>
+
+    <select id="getNonFungibleTokenCode"
+            resultType="org.cell.froopyland_interface.entity.nonFungibleToken.NonFungibleTokenCodePojo">
+        SELECT NFT_code     as nonFungibleTokenCode,
+               NFT_address  as nonFungibleTokenAddress,
+               NFT_id       as nonFungibleTokenId,
+               chain_id     as chainId,
+               network_name as networkName
+        FROM nft_code_info
+        WHERE NFT_code = #{nftCode,jdbcType=VARCHAR}
+          AND is_del = 0
+    </select>
+
+    <select id="getNonFungibleTokenInfo"
+            resultType="org.cell.froopyland_interface.entity.nonFungibleToken.NonFungibleTokenPojo">
+        SELECT NFT_code       as nftCode,
+               name,
+               NFT_address    as nftAddress,
+               user_address   as userAddress,
+               token_standard as tokenStandard,
+               image_url      as imageUrl,
+               token_id       as tokenId,
+               animation_url  as animationUrl,
+               opensea_url    as openSeaUrl,
+               metadata_url   as tokenMetadataUrl,
+               from_platform  as fromPlatform,
+               network_name   as chainName
+        FROM nft_base_info b
+        WHERE token_id = #{tokenId,jdbcType=VARCHAR}
+          AND NFT_address = #{nftAddress,jdbcType=VARCHAR}
+          AND network_name = #{chainName,jdbcType=VARCHAR}
+          AND is_del = '0'
+    </select>
+
+    <select id="getLatestLoginCode"
+            resultType="org.cell.froopyland_interface.entity.nonFungibleToken.LatestNftCodeInfoPojo">
+        SELECT NFT_code as nonFungibleTokenCode, count(*) as loginCount
+        FROM nft_login_log_info
+        WHERE user_address = #{userAddress,jdbcType=VARCHAR}
+          AND create_time >= #{startTime,jdbcType=TIMESTAMP}
+        group by NFT_code
+        order by loginCount desc
+        limit 10
+    </select>
+
+    <select id="getExistNonFungibleTokenCode"
+            resultType="org.cell.froopyland_interface.entity.nonFungibleToken.NonFungibleTokenCodePojo">
+        SELECT NFT_code as nonFungibleTokenCode, NFT_address as nonFungibleTokenAddress, NFT_id as nonFungibleTokenId
+        FROM nft_code_info
+        WHERE NFT_address = #{nonFungibleTokenAddress,jdbcType=VARCHAR}
+          AND NFT_id = #{nonFungibleTokenId,jdbcType=VARCHAR}
+          AND chain_id = #{chainId,jdbcType=VARCHAR}
+          AND network_name = #{networkName,jdbcType=VARCHAR}
+          AND is_del = '0'
+    </select>
+
+    <select id="getNonNonFungibleTokenDescription"
+            resultType="org.cell.froopyland_interface.entity.nonFungibleToken.NonFungibleTokenDesPojo">
+        SELECT id,
+               nft_address     as nftAddress,
+               name,
+               symbol,
+               schema_name     as schemaName,
+               description,
+               image_url       as imageUrl,
+               NFT_create_time as createdDate
+        FROM nft_description_info
+        order by id desc
+        limit #{startIndex,jdbcType=INTEGER},#{pageSize,jdbcType=INTEGER}
+    </select>
+
+    <select id="getNonFungibleTokenDescriptionCount" resultType="int">
+        SELECT count(*)
+        FROM nft_description_info
+    </select>
+
+    <select id="getUserNonFungibleTokenDescription"
+            resultType="org.cell.froopyland_interface.entity.response.DesNonFungibleTokenVo">
+        SELECT nft_address AS nftAddress,
+        NAME,
+        symbol,
+        schema_name AS schemaName,
+        description,
+        chain_id AS chainId,
+        network_name AS networkName,
+        NFT_create_time AS createdDate
+        FROM nft_description_info
+        WHERE is_del = 0
+        AND NFT_address IN (SELECT n.NFT_address
+        FROM (SELECT NFT_address
+        FROM nft_base_info
+        WHERE user_address = #{userAddress,jdbcType=VARCHAR}
+        <foreach collection="chainIds" item="chainId" open="AND chain_id in (" separator="," close=")">
+            #{chainId,jdbcType=VARCHAR}
+        </foreach>
+        GROUP BY NFT_address) n)
+    </select>
+    <select id="getNftAuctionsCount" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM nft_game_info
+        WHERE is_del = 0
+        <if test="status != null">
+            AND status = #{status,jdbcType=INTEGER}
+        </if>
+    </select>
+    <select id="getNftAuctionsByGameId"
+            resultType="org.cell.froopyland_interface.entity.nonFungibleToken.NonFungibleTokenPojo">
+        SELECT game_id          as gameId,
+               name,
+               network_name     as chainName,
+               NFT_address      as nftAddress,
+               user_address     as userAddress,
+               image_url        as imageUrl,
+               token_id         as tokenId,
+               animation_url    as animationUrl,
+               opensea_url      as openseaUrl,
+               metadata_url     as tokenMetadataUrl,
+               total_key_minted as totalKeyMinted,
+               key_price        as keyPrice,
+               sales_amount     as salesAmount,
+               start_time       as startTime,
+               end_time         as endTime,
+               status
+        FROM nft_game_info b
+        WHERE b.is_del = 0
+          AND game_id = #{gameId,jdbcType=BIGINT}
+    </select>
+    <select id="getNftAuctions"
+            resultType="org.cell.froopyland_interface.entity.nonFungibleToken.NonFungibleTokenPojo">
+        SELECT
+        game_id as gameId,
+        name,
+        network_name as chainName,
+        NFT_address as nftAddress,
+        user_address as userAddress,
+        last_address as lastAddress,
+        image_url as imageUrl,
+        token_id as tokenId,
+        animation_url as animationUrl,
+        opensea_url as openseaUrl,
+        metadata_url as tokenMetadataUrl,
+        sales_amount as salesAmount,
+        total_key_minted as totalKeyMinted,
+        key_price as keyPrice,
+        start_time as startTime,
+        end_time as endTime,
+        status
+        FROM nft_game_info b
+        WHERE b.is_del = 0
+        <if test="status != null">
+            AND status = #{status,jdbcType=INTEGER}
+        </if>
+        ORDER BY create_time DESC
+        LIMIT #{startIndex,jdbcType=INTEGER}, #{endIndex,jdbcType=INTEGER}
+    </select>
+    <select id="getUserNftListCount" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM nft_base_info
+        WHERE user_address = #{userAddress,jdbcType=VARCHAR}
+          AND is_del = 0
+    </select>
+    <select id="getUserNftList"
+            resultType="org.cell.froopyland_interface.entity.nonFungibleToken.NonFungibleTokenPojo">
+        SELECT NFT_code      as nftCode,
+               NFT_address   as nftAddress,
+               image_url     as imageUrl,
+               token_id      as tokenId,
+               animation_url as animationUrl,
+               opensea_url   as openSeaUrl,
+               metadata_url  as tokenMetadataUrl,
+               from_platform as fromPlatform
+        FROM nft_base_info b
+        where b.is_del = 0
+          AND user_address = #{address,jdbcType=INTEGER}
+          AND id >= #{startIndex,jdbcType=INTEGER}
+          AND id &lt; #{endIndex,jdbcType=INTEGER}
+    </select>
+    <select id="getMaxGameId" resultType="java.lang.Long">
+        SELECT MAX(game_id)
+        FROM nft_game_info
+    </select>
+    <select id="getBidderForm" resultType="org.cell.froopyland_interface.entity.nonFungibleToken.vo.BidVo">
+        SELECT amount,
+               user_address as userAddress
+        FROM user_bid_log
+        WHERE bid_id = #{bidId,jdbcType=BIGINT}
+          AND is_del = 0
+        ORDER BY amount DESC
+    </select>
+    <select id="getUserNftAuctions"
+            resultType="org.cell.froopyland_interface.entity.nonFungibleToken.NonFungibleTokenPojo">
+        SELECT
+        game_id as gameId,
+        name,
+        network_name as chainName,
+        NFT_address as nftAddress,
+        user_address as userAddress,
+        image_url as imageUrl,
+        token_id as tokenId,
+        animation_url as animationUrl,
+        opensea_url as openseaUrl,
+        metadata_url as tokenMetadataUrl,
+        sales_amount as salesAmount,
+        status
+        FROM nft_game_info b
+        WHERE b.is_del = 0
+        <if test="status != null">
+            AND status = #{status,jdbcType=INTEGER}
+        </if>
+        <if test="userAddress != null">
+            AND user_address = #{userAddress,jdbcType=VARCHAR}
+        </if>
+        <if test="mostKeyAddress != null">
+            AND most_key_address = #{mostKeyAddress,jdbcType=VARCHAR}
+        </if>
+        <if test="lastAddress != null">
+            AND last_address = #{lastAddress,jdbcType=VARCHAR}
+        </if>
+        ORDER BY create_time DESC
+    </select>
+    <select id="getMaxBidId" resultType="java.lang.Long">
+        SELECT MAX(bid_id)
+        FROM user_bid_log
+    </select>
+    <select id="getSettleBid"
+            resultType="org.cell.froopyland_interface.entity.nonFungibleToken.dto.SettleBidDto">
+        SELECT bid_id       as bidId,
+               amount,
+               user_address as userAddress,
+               create_time  as createTime
+        FROM user_settle_bid_log
+        WHERE bid_id = #{bidId,jdbcType=BIGINT}
+          AND is_del = 0
+    </select>
+    <select id="getGamePlayers" resultType="java.lang.String">
+        SELECT DISTINCT user_address
+        FROM user_join_log
+        WHERE game_id = #{gameId,jdbcType=BIGINT}
+          AND is_del = 0
+    </select>
+    <select id="getNftAuctionsByNftAddressAndTokenId"
+            resultType="org.cell.froopyland_interface.entity.nonFungibleToken.NonFungibleTokenPojo">
+        SELECT game_id  as gameId,
+               end_time as endTime,
+               status
+        FROM nft_game_info
+        WHERE NFT_address = #{nftAddress,jdbcType=VARCHAR}
+          AND token_id = #{tokenId,jdbcType=VARCHAR}
+          AND is_del = 0
+    </select>
+
+</mapper>
