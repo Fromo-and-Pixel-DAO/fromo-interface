@@ -30,3 +30,4 @@ logback.xml
 redisson.yaml
 /target/
 /.idea/
+/froopylandinterface.iml

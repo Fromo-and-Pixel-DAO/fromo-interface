@@ -51,7 +51,7 @@ public interface InterfaceApi {
     /**
      * contract url
      */
-    String NFT_SCAN_CONTRACT_URL = OPEN_BASE_URL+"/collections";
+    String NFT_SCAN_CONTRACT_URL = OPEN_BASE_URL + "/collections";
 
     /**
      * asset url
@@ -59,7 +59,7 @@ public interface InterfaceApi {
     String NFT_SCAN_ASSET_URL = "https://restapi.nftscan.com/api/v2/assets/";
 
     /**
-     * telegram bot message url
+     * telegram bot message url (abort)
      */
     String TELEGRAM_BOT_MESSAGE_URL = "https://api.telegram.org/bot5317172037:AAF4jv2CeKtAtPeU5xgCct8GK_HVdWbArgU/sendMessage";
 
