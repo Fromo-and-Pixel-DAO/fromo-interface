@@ -43,6 +43,7 @@ import org.web3j.protocol.core.methods.request.EthFilter;
 import org.web3j.protocol.core.methods.response.EthLog;
 import org.web3j.protocol.core.methods.response.Log;
 import org.web3j.tuples.generated.Tuple2;
+import org.web3j.tuples.generated.Tuple4;
 import org.web3j.utils.Convert;
 
 import java.io.IOException;
@@ -373,10 +374,15 @@ public class NonFungibleTokenServiceImpl implements NonFungibleTokenService {
                     String userAddress = gameJoinedEventFromLog.Player;
                     BigInteger gameId = gameJoinedEventFromLog.GameId;
                     BigInteger keyAmount = gameJoinedEventFromLog._keyAmount;
+                    String transactionHash = ((Log) logResult).getTransactionHash();
 
                     log.info("game joined userAddress:{} gameId:{} keyAmount:{}", userAddress, gameId, keyAmount);
-                    UserJoinLogDto userJoinLogDto = new UserJoinLogDto(gameId.longValue(), userAddress, keyAmount, ((Log) logResult).getTransactionHash());
-                    nonFungibleTokenDao.addUserJoinLog(userJoinLogDto);
+                    String address = nonFungibleTokenDao.getUserJoinLog(userAddress, gameId.longValue(), transactionHash);
+                    if (StringUtils.isBlank(address)) {
+                        UserJoinLogDto userJoinLogDto = new UserJoinLogDto(gameId.longValue(), userAddress, keyAmount, transactionHash);
+                        nonFungibleTokenDao.addUserJoinLog(userJoinLogDto);
+                        log.info("add game joined");
+                    }
                 }
             }
         }
@@ -576,16 +582,16 @@ public class NonFungibleTokenServiceImpl implements NonFungibleTokenService {
 
         List<Long> saleIds = saleAmountList.stream().map(AmountDto::getGameId).distinct().collect(Collectors.toList());
 
-//        try {
-//            Tuple4<BigInteger, BigInteger, BigInteger, BigInteger> send = bidFroopyLand.getBidderInfoOf(userAddress).send();
-//            myProfitVo.setFlTokens(send.component2().toString());
-//            myProfitVo.setLockedFlTokens(send.component2().subtract(send.component4()).toString());
-//            myProfitVo.setWithdrawalAmountTokens(send.component4().toString());
-//        } catch (Exception e) {
-//            log.error("getMyProfit error", e);
-//            myProfitVo.setFlTokens("0");
-//            myProfitVo.setWithdrawalAmountTokens("0");
-//        }
+        try {
+            Tuple4<BigInteger, BigInteger, BigInteger, BigInteger> send = bidFroopyLand.getBidderInfoOf(userAddress).send();
+            myProfitVo.setFlTokens(send.component2().toString());
+            myProfitVo.setLockedFlTokens(send.component2().subtract(send.component4()).toString());
+            myProfitVo.setWithdrawalAmountTokens(send.component4().toString());
+        } catch (Exception e) {
+            log.error("getMyProfit error", e);
+            myProfitVo.setFlTokens("0");
+            myProfitVo.setWithdrawalAmountTokens("0");
+        }
         List<NonFungibleTokenPojo> userJoinedGameIds = userService.getUserJoinedGameIds(userAddress);
         List<NonFungibleTokenPojo> userJoinedGameInfos = userService.getUserJoinedGameInfo(userAddress);
         userJoinedGameIds.stream().filter(userJoinedGameId -> userJoinedGameId.getCreator().equals(userAddress.toLowerCase())).map(NonFungibleTokenPojo::getGameId).collect(Collectors.toSet());

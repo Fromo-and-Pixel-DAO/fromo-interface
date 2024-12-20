@@ -447,5 +447,13 @@
           AND token_id = #{tokenId,jdbcType=VARCHAR}
           AND is_del = 0
     </select>
+    <select id="getUserJoinLog" resultType="java.lang.String">
+        SELECT user_address
+        FROM user_join_log
+        WHERE game_id = #{gameId,jdbcType=BIGINT}
+          AND user_address = #{userAddress,jdbcType=VARCHAR}
+          AND transaction_hash = #{transactionHash,jdbcType=VARCHAR}
+          AND is_del = '0'
+    </select>
 
 </mapper>

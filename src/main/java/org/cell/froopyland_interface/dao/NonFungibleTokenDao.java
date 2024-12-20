@@ -192,5 +192,7 @@ public interface NonFungibleTokenDao {
 
     void addUserJoinLog(UserJoinLogDto userJoinLogDto);
 
+    String getUserJoinLog(@Param("userAddress") String userAddress, @Param("gameId") Long gameId, @Param("transactionHash") String transactionHash);
+
 
 }

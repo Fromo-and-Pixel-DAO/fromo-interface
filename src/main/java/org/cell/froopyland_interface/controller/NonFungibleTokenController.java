@@ -13,7 +13,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
+import java.util.Random;
 
 /**
  * @author yozora
@@ -117,5 +120,11 @@ public class NonFungibleTokenController {
     @GetMapping("/nft/getJoinLog/{startBlock}/{endBlock}")
     public ApiResponse<List<NonFungibleTokenPojo>> getJoinLog(@PathVariable(value = "startBlock") String startBlock, @PathVariable(value = "endBlock") String endBlock) throws IOException {
         return new ApiResponse<>(nonFungibleTokenService.getJoinLog(startBlock, endBlock));
+    }
+
+    public static void main(String[] args) {
+        for (int i = 0; i < 10000; i++) {
+            System.out.println(new BigDecimal(new Random().nextInt(995) + 5).divide(new BigDecimal(1000), 3, RoundingMode.HALF_UP));
+        }
     }
 }
